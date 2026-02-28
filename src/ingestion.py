@@ -3,7 +3,7 @@ import glob
 import os
 import sys
 
-def get_latest_merged_data(data_dir='../data/'):
+def get_latest_merged_data(data_dir='../data/raw'):
     """
     Automated merge with data validation (Data Contract).
     """
@@ -37,13 +37,17 @@ def get_latest_merged_data(data_dir='../data/'):
     return merged_df
 
 if __name__ == "__main__":
-    # Determine directory context
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    data_path = os.path.join(project_root, 'data')
 
-    data = get_latest_merged_data(data_dir=data_path)
-    output_file = os.path.join(data_path, 'merged_staging.csv')
-    
+    raw_path = os.path.join(project_root, 'data', 'raw')
+    processed_path = os.path.join(project_root, 'data', 'processed')
+
+    os.makedirs(processed_path, exist_ok=True)
+
+    data = get_latest_merged_data(data_dir=raw_path)
+
+    output_file = os.path.join(processed_path, 'merged_staging.csv')
     data.to_csv(output_file, index=False)
+
     print(f"SUCCESS: Gold-standard dataset ready at {output_file}")
