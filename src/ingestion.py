@@ -21,8 +21,12 @@ def get_latest_merged_data(data_dir='../data/raw'):
     df_raw = pd.read_csv(raw_files[0])
     df_proc = pd.read_csv(proc_files[0])
 
+    # Standardize Join Key
+    if 'Research ID' in df_proc.columns:
+        df_proc = df_proc.rename(columns={'Research ID': 'system_job_id'})
+
     required_raw_cols = ['system_job_id', 'title', 'description', 'city']
-    required_proc_cols = ['system_job_id', 'taxonomy_skill', 'Correlation Coefficient']
+    required_proc_cols = ['system_job_id','Raw Skill', 'Taxonomy Skill', 'Correlation Coefficient']
 
     for col in required_raw_cols:
         if col not in df_raw.columns:
@@ -32,9 +36,7 @@ def get_latest_merged_data(data_dir='../data/raw'):
         if col not in df_proc.columns:
             raise ValueError(f"Missing column in processed data: {col}")
 
-    # Standardize Join Key
-    if 'Research ID' in df_proc.columns:
-        df_proc = df_proc.rename(columns={'Research ID': 'system_job_id'})
+    
 
     # 3. The Merge (Inner Join)
     # Using inner join to ensure Bharat only gets 'complete' data
