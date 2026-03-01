@@ -212,5 +212,6 @@ data/raw/*
 
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/city_skill_lift.parquet
 
 .DS_Store
