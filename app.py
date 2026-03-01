@@ -1,10 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 
 # ===================================================
 # PAGE CONFIG
@@ -22,31 +19,22 @@ st.markdown("""
 body {
     background-color: #F5F7FA;
 }
-
 h1, h2, h3 {
     color: #0B3C5D;
 }
-
 .metric-card {
     background-color: white;
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
 }
-
-.sidebar .sidebar-content {
-    background-color: #0B3C5D;
-    color: white;
-}
-
 footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 # ===================================================
-# LOAD DATA
+# LOAD DATA (PRODUCTION SAFE)
 # ===================================================
-
 @st.cache_data
 def load_data():
     return pd.read_parquet("data/processed/city_skill_lift.parquet")
@@ -55,7 +43,7 @@ lift_df = load_data()
 
 # ===================================================
 # SIDEBAR NAVIGATION
-# ===================================================   
+# ===================================================
 st.sidebar.title("Colorado Workforce Intelligence")
 
 page = st.sidebar.radio(
@@ -81,7 +69,6 @@ st.markdown("---")
 # ===================================================
 if page == "State Overview":
 
-    
     total_cities = lift_df["city"].nunique()
     total_skills = lift_df["Taxonomy Skill"].nunique()
     total_jobs = lift_df["total_jobs"].sum()
@@ -89,19 +76,13 @@ if page == "State Overview":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric("Total Jobs Analyzed", f"{total_jobs:,}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.metric("Total Jobs Analyzed", f"{int(total_jobs):,}")
 
     with col2:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("Unique Skills Identified", f"{total_skills:,}")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col3:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("Cities Covered", total_cities)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -169,15 +150,19 @@ elif page == "City Intelligence":
 # ===================================================
 elif page == "Regional Clusters":
 
-    pivot = lift_df.pivot_table(
-        index="city",
-        columns="Taxonomy Skill",
-        values="lift",
-        fill_value=0
-    )
+    @st.cache_data
+    def compute_clusters(df):
+        pivot = df.pivot_table(
+            index="city",
+            columns="Taxonomy Skill",
+            values="lift",
+            fill_value=0
+        )
+        kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+        clusters = kmeans.fit_predict(pivot)
+        return pivot, clusters
 
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    clusters = kmeans.fit_predict(pivot)
+    pivot, clusters = compute_clusters(lift_df)
 
     cluster_df = pd.DataFrame({
         "City": pivot.index,
@@ -191,10 +176,16 @@ elif page == "Regional Clusters":
     st.subheader("Cluster Profiles")
 
     for cluster_id in sorted(cluster_df["Cluster"].unique()):
+
         st.markdown(f"### Cluster {cluster_id}")
 
-        cluster_cities = cluster_df[cluster_df["Cluster"] == cluster_id]["City"]
-        cluster_skill_data = lift_df[lift_df["city"].isin(cluster_cities)]
+        cluster_cities = cluster_df[
+            cluster_df["Cluster"] == cluster_id
+        ]["City"]
+
+        cluster_skill_data = lift_df[
+            lift_df["city"].isin(cluster_cities)
+        ]
 
         cluster_profile = (
             cluster_skill_data.groupby("Taxonomy Skill")["lift"]
