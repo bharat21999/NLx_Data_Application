@@ -1,3 +1,6 @@
+from shap import kmeans
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -71,7 +74,7 @@ if page == "State Overview":
 
     total_cities = lift_df["city"].nunique()
     total_skills = lift_df["Taxonomy Skill"].nunique()
-    total_jobs = lift_df["total_jobs"].sum()
+    total_jobs = lift_df.groupby("city")["total_jobs"].first().sum()
 
     col1, col2, col3 = st.columns(3)
 
@@ -149,7 +152,7 @@ elif page == "City Intelligence":
 # REGIONAL CLUSTERS
 # ===================================================
 elif page == "Regional Clusters":
-
+        
     @st.cache_data
     def compute_clusters(df):
         pivot = df.pivot_table(
@@ -158,8 +161,18 @@ elif page == "Regional Clusters":
             values="lift",
             fill_value=0
         )
+        
+        from sklearn.preprocessing import StandardScaler
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(pivot)
+
+        from sklearn.decomposition import PCA
+
+        pca = PCA(n_components=10)
+        X_reduced = pca.fit_transform(X_scaled)
         kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
-        clusters = kmeans.fit_predict(pivot)
+        clusters = kmeans.fit_predict(X_reduced)
         return pivot, clusters
 
     pivot, clusters = compute_clusters(lift_df)
