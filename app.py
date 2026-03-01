@@ -46,17 +46,16 @@ footer {visibility: hidden;}
 # ===================================================
 # LOAD DATA
 # ===================================================
+
 @st.cache_data
 def load_data():
-    analysis = pd.read_parquet("data/processed/analysis_ready.parquet")
-    lift = pd.read_parquet("data/processed/city_skill_lift.parquet")
-    return analysis, lift
+    return pd.read_parquet("data/processed/city_skill_lift.parquet")
 
-analysis_df, lift_df = load_data()
+lift_df = load_data()
 
 # ===================================================
 # SIDEBAR NAVIGATION
-# ===================================================
+# ===================================================   
 st.sidebar.title("Colorado Workforce Intelligence")
 
 page = st.sidebar.radio(
@@ -82,9 +81,10 @@ st.markdown("---")
 # ===================================================
 if page == "State Overview":
 
-    total_jobs = analysis_df["system_job_id"].nunique()
-    total_skills = analysis_df["Taxonomy Skill"].nunique()
-    total_cities = analysis_df["city"].nunique()
+    
+    total_cities = lift_df["city"].nunique()
+    total_skills = lift_df["Taxonomy Skill"].nunique()
+    total_jobs = lift_df["total_jobs"].sum()
 
     col1, col2, col3 = st.columns(3)
 
@@ -106,7 +106,7 @@ if page == "State Overview":
     st.markdown("---")
 
     statewide = (
-        analysis_df.groupby("Taxonomy Skill")["skill_weight"]
+        lift_df.groupby("Taxonomy Skill")["skill_weight"]
         .sum()
         .sort_values(ascending=False)
         .head(10)
